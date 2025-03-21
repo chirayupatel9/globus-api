@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pyngrok
+python-multipart
+globus-sdk
+starlette 
+itsdangerous

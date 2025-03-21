@@ -3,27 +3,13 @@ from pyngrok import ngrok
 import uvicorn
 import json
 
-# Your ngrok auth token (get it from https://dashboard.ngrok.com/auth)
-NGROK_AUTH_TOKEN = "2uaYpvdLtzRnlHxaz8GHhYcxW7Q_NoU1GnbabFNTgV3Hxb5L"
-
-def update_redirect_uri(ngrok_url):
-    """Update the REDIRECT_URI in app.py with the new ngrok URL"""
-    with open('app.py', 'r') as file:
-        content = file.read()
-    
-    # Update the REDIRECT_URI
-    new_redirect_uri = f"{ngrok_url}/callback"
-    content = content.replace(
-        'REDIRECT_URI = "' + content.split('REDIRECT_URI = "')[1].split('"')[0] + '"',
-        f'REDIRECT_URI = "{new_redirect_uri}"'
-    )
-    
-    with open('app.py', 'w') as file:
-        file.write(content)
-
 def run_app():
     # Configure ngrok
-    ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+    ngrok_token = os.getenv("NGROK_AUTH_TOKEN")
+    if not ngrok_token:
+        raise ValueError("NGROK_AUTH_TOKEN environment variable is not set")
+    
+    ngrok.set_auth_token(ngrok_token)
     
     # Start ngrok tunnel
     public_url = ngrok.connect(5000).public_url
@@ -34,8 +20,8 @@ def run_app():
     
     print(f"NGrok URL: {public_url}")
     
-    # Update the redirect URI in app.py
-    update_redirect_uri(public_url)
+    # Set the REDIRECT_URI environment variable
+    os.environ["REDIRECT_URI"] = f"{public_url}/callback"
     
     # Start the FastAPI app
     uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)

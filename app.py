@@ -37,10 +37,10 @@ app.add_middleware(
     secret_key="super_secret_key"
 )
 
-# Constants remain the same
-CLIENT_ID = "b4a71af8-6f1c-4f94-9da3-79103a9ebfe7"
-CLIENT_SECRET = "M1fKQFBCxtYtTeFoaSR4LpXOg5KHIQaXTLczegA6xIU="
-REDIRECT_URI = "https://1dd7-144-118-75-24.ngrok-free.app/callback"
+# Get configuration from environment variables
+CLIENT_ID = os.getenv("GLOBUS_CLIENT_ID")
+CLIENT_SECRET = os.getenv("GLOBUS_CLIENT_SECRET")
+REDIRECT_URI = "/callback"  # Will be set dynamically by run_with_ngrok.py
 SCOPES = "urn:globus:auth:scope:transfer.api.globus.org:all"
 
 # Create a ConfidentialAppAuthClient for token exchange
