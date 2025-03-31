@@ -14,7 +14,10 @@ RUN apt-get update \
         curl \
         unzip \
         build-essential \
+        sudo \
     && rm -rf /var/lib/apt/lists/*
+
+
 
 # Install ngrok
 RUN curl -Lo /tmp/ngrok.zip https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip \
@@ -32,6 +35,13 @@ COPY . .
 
 # Expose the port the app runs on
 EXPOSE 5000
+# Create the user
+RUN useradd -ms /bin/bash globus
 
+# Set user to 'globus'
+USER globus
+
+# Set working directory
+# WORKDIR /home/globus
 # Command to run the application
 CMD ["python", "run_with_ngrok.py"]

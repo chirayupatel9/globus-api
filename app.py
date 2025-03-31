@@ -12,7 +12,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import subprocess
 from pathlib import Path
 
-
+import shutil
 # Initialize FastAPI App
 app = FastAPI()
 
@@ -40,7 +40,7 @@ app.add_middleware(
 # Get configuration from environment variables
 CLIENT_ID = os.getenv("GLOBUS_CLIENT_ID")
 CLIENT_SECRET = os.getenv("GLOBUS_CLIENT_SECRET")
-REDIRECT_URI = "/callback"  # Will be set dynamically by run_with_ngrok.py
+REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:5000/callback")
 SCOPES = "urn:globus:auth:scope:transfer.api.globus.org:all"
 
 # Create a ConfidentialAppAuthClient for token exchange
@@ -176,20 +176,67 @@ async def create_endpoint(endpoint: EndpointCreate, session: dict = Depends(get_
         gcp_bin = gcp_dir / "globusconnectpersonal"
 
         # Step 1: Download GCP if missing
+        # if not gcp_bin.exists():
+        gcp_dir.mkdir(exist_ok=True)
+        gcp_url = "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz"
+
+        subprocess.run(["curl", "-L", "-o", "gcp.tgz", gcp_url], cwd=gcp_dir, check=True)
+        subprocess.run(["tar", "xvzf", "gcp.tgz"], cwd=gcp_dir, check=True)
+        # subprocess.run(["ls", "-la",])
+        # subprocess.run(["pwd"])
+        # print(gcp_dir)
+        # Dynamically find extracted folder (e.g., globusconnectpersonal-3.2.6)
+        # Find the extracted folder (e.g., globusconnectpersonal-3.2.6)
+        # Step 2: Locate extracted folder
+        extracted_dir = None
+        for item in gcp_dir.iterdir():
+            if item.is_dir() and item.name.startswith("globusconnectpersonal-"):
+                extracted_dir = item
+                break
+
+        if not extracted_dir:
+            raise HTTPException(status_code=500, detail="Could not find extracted GCP directory")
+
+        gcp_bin = extracted_dir / "globusconnectpersonal"
+
         if not gcp_bin.exists():
-            gcp_dir.mkdir(exist_ok=True)
-            gcp_url = "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz"
+            raise HTTPException(status_code=500, detail=f"GCP binary not found at: {gcp_bin}")
 
-            subprocess.run(["curl", "-L", "-o", "gcp.tgz", gcp_url], cwd=gcp_dir, check=True)
-            subprocess.run(["tar", "xvzf", "gcp.tgz"], cwd=gcp_dir, check=True)
-            subprocess.run(["chmod", "+x", "globusconnectpersonal"], cwd=gcp_dir, check=True)
+        subprocess.run(["chmod", "+x", str(gcp_bin)], check=True)
 
+        # subprocess.run(["ls", "-la"])
+        # subprocess.run(["getent", "passwd"])
+        # subprocess.run(["whoami"])
+
+        # subprocess.run(["chmod", "+x", "/root/globus-connect-personal/globusconnectpersonal-*"])
+        # Step 3: Run setup and GCP as 'globus' user (non-root)
+        # Copy extracted directory to /home/globus to ensure proper ownership
+        globus_home = Path("/home/globus")
+        target_dir = globus_home / "gcp"
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+        shutil.copytree(extracted_dir, target_dir)
+        gcp_bin = target_dir / "globusconnectpersonal"
+
+        # Setup endpoint
+        subprocess.run(["echo", "starting setup"])
+        subprocess.run([str(gcp_bin), "-setup", setup_key], cwd=target_dir, check=True)
+        subprocess.run(["ls", "-la"])
+        subprocess.run(["echo", "hello"])
+        # Start GCP
+        subprocess.Popen([str(gcp_bin)], cwd=target_dir)
+        subprocess.run(["echo", "thanks"])
         # Step 2: Run setup
-        subprocess.run([str(gcp_bin), "-setup", setup_key], cwd=gcp_dir, check=True)
+        # subprocess.run(['adduser', 'globus'])
+        # subprocess.Popen(["bash"])
+        # subprocess.Popen(["sudo", "su", "globus"])
+        # subprocess.Popen(["bash"])
+        # subprocess.Popen(["whoami"])
+        # subprocess.Popen([str(gcp_bin), "-setup", setup_key])
 
-        # Step 3: Start GCP in background
-        subprocess.Popen([str(gcp_bin)], cwd=gcp_dir)
-
+        # # Step 3: Start GCP in background
+        # subprocess.Popen([str(gcp_bin)], cwd=gcp_dir)
+ 
         return {
             "message": "Endpoint created and GCP started successfully",
             "endpoint_id": endpoint_id,
