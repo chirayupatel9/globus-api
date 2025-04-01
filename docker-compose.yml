@@ -9,6 +9,13 @@ services:
       - NGROK_AUTH_TOKEN=${NGROK_AUTH_TOKEN}
       - GLOBUS_CLIENT_ID=${GLOBUS_CLIENT_ID}
       - GLOBUS_CLIENT_SECRET=${GLOBUS_CLIENT_SECRET}
+      - GLOBUS_CONFIG_PATH=/home/globus/globus_config
     volumes:
       - .:/app
-    restart: unless-stopped 
+      - globus_config:/home/globus/globus_config
+      - globus_data:/home/globus/data
+    restart: unless-stopped
+
+volumes:
+  globus_config:
+  globus_data: 

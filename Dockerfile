@@ -1,47 +1,64 @@
-# Use Python 3.9 slim image as base
-FROM python:3.9-slim
+FROM rockylinux:9
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME=/home/globus \
+    GLOBUS_CONFIG_PATH=/home/globus/globus_config \
+    GLOBUS_OPTIONAL_MODE=false \
+    TERM=xterm
+
+# Install necessary packages
+RUN yum -y update && \
+    yum -y install wget rsync openssh-clients python pip && \
+    yum -y install epel-release && \
+    yum -y update && \
+    dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+    pip3 install --upgrade pip
+
+# Create globus user and necessary directories
+RUN adduser globus && \
+    mkdir -p /home/globus/globus_config/.globus && \
+    mkdir -p /home/globus/globus_config/.globusonline && \
+    mkdir -p /home/globus/data && \
+    mkdir -p /app
+
+# Install Globus Connect Personal
+RUN cd /root && \
+    wget https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz && \
+    tar xzvf /root/globusconnectpersonal-latest.tgz -C /home/globus && \
+    rm -f /root/globusconnectpersonal-latest.tgz
+
+# Set up permissions
+RUN chown -R globus:globus /home/globus && \
+    chown -R globus:globus /app && \
+    chmod -R 755 /home/globus/globus_config && \
+    chmod -R 755 /home/globus/data
 
 # Set working directory
 WORKDIR /app
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# Install system dependencies including unzip
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl \
-        unzip \
-        build-essential \
-        sudo \
-    && rm -rf /var/lib/apt/lists/*
-
-
-
-# Install ngrok
-RUN curl -Lo /tmp/ngrok.zip https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip \
-    && unzip /tmp/ngrok.zip -d /usr/local/bin \
-    && rm /tmp/ngrok.zip
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
 
-# Expose the port the app runs on
-EXPOSE 5000
-# Create the user
-RUN useradd -ms /bin/bash globus
+# Ensure proper ownership of application files
+RUN chown -R globus:globus /app
 
-# Set user to 'globus'
+# Create volumes
+VOLUME /home/globus/globus_config
+VOLUME /home/globus/data
+
+# Switch to non-root user
 USER globus
 
-# Set working directory
-# WORKDIR /home/globus
+# Expose the port the app runs on
+EXPOSE 5000
+
 # Command to run the application
 CMD ["python", "run_with_ngrok.py"]

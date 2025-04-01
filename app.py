@@ -66,6 +66,42 @@ async def home(session: dict = Depends(get_session)):
         return {"message": "Authenticated!", "logout_url": "/logout"}
     return RedirectResponse(url="/login")
 
+@app.get("/api/user-info")
+async def get_user_info(session: dict = Depends(get_session)):
+    """Retrieve user information like user ID, name, email"""
+    if "access_token" not in session:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+    
+    # Define the URL for the userinfo endpoint
+    user_info_url = "https://api.globus.org/v2/oauth2/userinfo"
+    
+    # Prepare the headers with the access token
+    headers = {
+        "Authorization": f"Bearer {session['access_token']}"
+    }
+
+    try:
+        # Make the request to the Globus userinfo endpoint
+        response = requests.get(user_info_url, headers=headers)
+        
+        # If the response is not successful, raise an error
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch user information")
+        
+        # Parse the JSON response to get user info
+        user_info = response.json()
+        
+        # Return user info (you can return more fields as needed)
+        return {
+            "user_id": user_info.get("sub"),
+            "name": user_info.get("name"),
+            "email": user_info.get("email"),
+            "preferred_username": user_info.get("preferred_username"),
+        }
+
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching user info: {str(e)}")
+
 @app.get("/login")
 async def login(session: dict = Depends(get_session)):
     """Initiate OAuth login and start OAuth2 flow"""
@@ -155,98 +191,108 @@ async def create_endpoint(endpoint: EndpointCreate, session: dict = Depends(get_
     if "access_token" not in session:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    authorizer = globus_sdk.AccessTokenAuthorizer(session["access_token"])
-    transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
+    # Use home directory of the current user
+    globus_dir = Path(os.environ.get('HOME', '/home/appuser')) / 'globus'
+    
+    try:
+        # Ensure directory exists
+        globus_dir.mkdir(parents=True, exist_ok=True)
+        
+        authorizer = globus_sdk.AccessTokenAuthorizer(session["access_token"])
+        transfer_client = globus_sdk.TransferClient(authorizer=authorizer)
 
-    endpoint_doc = {
-    "display_name": "My GCP Endpoint (Kubernetes)",
-    "is_globus_connect": True,
-    "DATA_TYPE": "endpoint"
-}
+        endpoint_doc = {
+        "display_name": "My GCP Endpoint (Kubernetes)",
+        "is_globus_connect": True,
+        "DATA_TYPE": "endpoint"
+    }
 
 
-    try:    
-        endpoint_result = transfer_client.create_endpoint(endpoint_doc)
-        ep = globus_sdk.response.GlobusHTTPResponse(response=endpoint_result) 
-        endpoint_id = endpoint_result["id"]
-        setup_key = endpoint_result["globus_connect_setup_key"]
+        try:    
+            endpoint_result = transfer_client.create_endpoint(endpoint_doc)
+            ep = globus_sdk.response.GlobusHTTPResponse(response=endpoint_result) 
+            endpoint_id = endpoint_result["id"]
+            setup_key = endpoint_result["globus_connect_setup_key"]
 
-        # Define GCP directory and binary path
-        gcp_dir = Path.home() / "globus-connect-personal"
-        gcp_bin = gcp_dir / "globusconnectpersonal"
+            # Define GCP directory and binary path
+            gcp_dir = Path.home() / "globus-connect-personal"
+            gcp_bin = gcp_dir / "globusconnectpersonal"
 
-        # Step 1: Download GCP if missing
-        # if not gcp_bin.exists():
-        gcp_dir.mkdir(exist_ok=True)
-        gcp_url = "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz"
+            # Step 1: Download GCP if missing
+            # if not gcp_bin.exists():
+            gcp_dir.mkdir(exist_ok=True)
+            gcp_url = "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz"
 
-        subprocess.run(["curl", "-L", "-o", "gcp.tgz", gcp_url], cwd=gcp_dir, check=True)
-        subprocess.run(["tar", "xvzf", "gcp.tgz"], cwd=gcp_dir, check=True)
-        # subprocess.run(["ls", "-la",])
-        # subprocess.run(["pwd"])
-        # print(gcp_dir)
-        # Dynamically find extracted folder (e.g., globusconnectpersonal-3.2.6)
-        # Find the extracted folder (e.g., globusconnectpersonal-3.2.6)
-        # Step 2: Locate extracted folder
-        extracted_dir = None
-        for item in gcp_dir.iterdir():
-            if item.is_dir() and item.name.startswith("globusconnectpersonal-"):
-                extracted_dir = item
-                break
+            subprocess.run(["curl", "-L", "-o", "gcp.tgz", gcp_url], cwd=gcp_dir, check=True)
+            subprocess.run(["tar", "xvzf", "gcp.tgz"], cwd=gcp_dir, check=True)
+            # subprocess.run(["ls", "-la",])
+            # subprocess.run(["pwd"])
+            # print(gcp_dir)
+            # Dynamically find extracted folder (e.g., globusconnectpersonal-3.2.6)
+            # Find the extracted folder (e.g., globusconnectpersonal-3.2.6)
+            # Step 2: Locate extracted folder
+            extracted_dir = None
+            for item in gcp_dir.iterdir():
+                if item.is_dir() and item.name.startswith("globusconnectpersonal-"):
+                    extracted_dir = item
+                    break
 
-        if not extracted_dir:
-            raise HTTPException(status_code=500, detail="Could not find extracted GCP directory")
+            if not extracted_dir:
+                raise HTTPException(status_code=500, detail="Could not find extracted GCP directory")
 
-        gcp_bin = extracted_dir / "globusconnectpersonal"
+            gcp_bin = extracted_dir / "globusconnectpersonal"
 
-        if not gcp_bin.exists():
-            raise HTTPException(status_code=500, detail=f"GCP binary not found at: {gcp_bin}")
+            if not gcp_bin.exists():
+                raise HTTPException(status_code=500, detail=f"GCP binary not found at: {gcp_bin}")
 
-        subprocess.run(["chmod", "+x", str(gcp_bin)], check=True)
+            subprocess.run(["chmod", "+x", str(gcp_bin)], check=True)
 
-        # subprocess.run(["ls", "-la"])
-        # subprocess.run(["getent", "passwd"])
-        # subprocess.run(["whoami"])
+            # subprocess.run(["ls", "-la"])
+            # subprocess.run(["getent", "passwd"])
+            # subprocess.run(["whoami"])
 
-        # subprocess.run(["chmod", "+x", "/root/globus-connect-personal/globusconnectpersonal-*"])
-        # Step 3: Run setup and GCP as 'globus' user (non-root)
-        # Copy extracted directory to /home/globus to ensure proper ownership
-        globus_home = Path("/home/globus")
-        target_dir = globus_home / "gcp"
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        shutil.copytree(extracted_dir, target_dir)
-        gcp_bin = target_dir / "globusconnectpersonal"
+            # subprocess.run(["chmod", "+x", "/root/globus-connect-personal/globusconnectpersonal-*"])
+            # Step 3: Run setup and GCP as 'globus' user (non-root)
+            # Copy extracted directory to /home/globus to ensure proper ownership
+            globus_home = Path("/home/globus")
+            target_dir = globus_home / "gcp"
+            if target_dir.exists():
+                shutil.rmtree(target_dir)
+            shutil.copytree(extracted_dir, target_dir)
+            gcp_bin = target_dir / "globusconnectpersonal"
 
-        # Setup endpoint
-        subprocess.run(["echo", "starting setup"])
-        subprocess.run([str(gcp_bin), "-setup", setup_key], cwd=target_dir, check=True)
-        subprocess.run(["ls", "-la"])
-        subprocess.run(["echo", "hello"])
-        # Start GCP
-        subprocess.Popen([str(gcp_bin)], cwd=target_dir)
-        subprocess.run(["echo", "thanks"])
-        # Step 2: Run setup
-        # subprocess.run(['adduser', 'globus'])
-        # subprocess.Popen(["bash"])
-        # subprocess.Popen(["sudo", "su", "globus"])
-        # subprocess.Popen(["bash"])
-        # subprocess.Popen(["whoami"])
-        # subprocess.Popen([str(gcp_bin), "-setup", setup_key])
+            # Setup endpoint
+            subprocess.run(["echo", "starting setup"])
+            subprocess.run([str(gcp_bin), "-setup", setup_key], cwd=target_dir, check=True)
+            subprocess.run(["ls", "-la"])
+            subprocess.run(["echo", "hello"])
+            # Start GCP
+            subprocess.Popen([str(gcp_bin)], cwd=target_dir)
+            subprocess.run(["echo", "thanks"])
+            # Step 2: Run setup
+            # subprocess.run(['adduser', 'globus'])
+            # subprocess.Popen(["bash"])
+            # subprocess.Popen(["sudo", "su", "globus"])
+            # subprocess.Popen(["bash"])
+            # subprocess.Popen(["whoami"])
+            # subprocess.Popen([str(gcp_bin), "-setup", setup_key])
 
-        # # Step 3: Start GCP in background
-        # subprocess.Popen([str(gcp_bin)], cwd=gcp_dir)
- 
-        return {
-            "message": "Endpoint created and GCP started successfully",
-            "endpoint_id": endpoint_id,
-            "setup_key": setup_key
-        }
+            # # Step 3: Start GCP in background
+            # subprocess.Popen([str(gcp_bin)], cwd=gcp_dir)
+     
+            return {
+                "message": "Endpoint created and GCP started successfully",
+                "endpoint_id": endpoint_id,
+                "setup_key": setup_key
+            }
 
-    except globus_sdk.GlobusAPIError as e:
-        raise HTTPException(status_code=400, detail=f"Failed to create endpoint: {str(e)}")
-    except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=500, detail=f"GCP setup failed: {e}")
+        except globus_sdk.GlobusAPIError as e:
+            raise HTTPException(status_code=400, detail=f"Failed to create endpoint: {str(e)}")
+        except subprocess.CalledProcessError as e:
+            raise HTTPException(status_code=500, detail=f"GCP setup failed: {e}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create endpoint: {str(e)}")
 
 
 if __name__ == "__main__":
