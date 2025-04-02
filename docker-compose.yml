@@ -15,7 +15,16 @@ services:
       - globus_config:/home/globus/globus_config
       - globus_data:/home/globus/data
     restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    devices:
+          - /dev/net/tun:/dev/net/tun
+    privileged: true
+    platform: linux/amd64
+    
 
 volumes:
   globus_config:
   globus_data: 
+  
