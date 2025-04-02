@@ -11,7 +11,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import subprocess
 from pathlib import Path
-
+env = os.environ.copy()
+env["GCP_OS"] = "linux"
+env["GCP_ARCH"] = "amd64"
+env["HOME"] = "/home/globus"
 import shutil
 # Initialize FastAPI App
 app = FastAPI()
@@ -246,8 +249,9 @@ async def create_endpoint(endpoint: EndpointCreate, session: dict = Depends(get_
                 raise HTTPException(status_code=500, detail=f"GCP binary not found at: {gcp_bin}")
 
             subprocess.run(["chmod", "+x", str(gcp_bin)], check=True)
+            # subprocess.run(["chmod", "+x", str(gcp_bin)], check=True)
 
-            # subprocess.run(["ls", "-la"])
+
             # subprocess.run(["getent", "passwd"])
             # subprocess.run(["whoami"])
 
@@ -260,15 +264,21 @@ async def create_endpoint(endpoint: EndpointCreate, session: dict = Depends(get_
                 shutil.rmtree(target_dir)
             shutil.copytree(extracted_dir, target_dir)
             gcp_bin = target_dir / "globusconnectpersonal"
+            # Setup GCP
+            subprocess.run(["python","--version"])
+            subprocess.run([str(gcp_bin),"-dir", "/home/globus/gcp", "-setup", setup_key], cwd=target_dir, check=True, env=env)
 
+            # Start GCP in background
+            subprocess.Popen([str(gcp_bin)], cwd=target_dir, env=env)
+            # subprocess.run(["ls", "-la"])
             # Setup endpoint
-            subprocess.run(["echo", "starting setup"])
-            subprocess.run([str(gcp_bin), "-setup", setup_key], cwd=target_dir, check=True)
-            subprocess.run(["ls", "-la"])
-            subprocess.run(["echo", "hello"])
-            # Start GCP
-            subprocess.Popen([str(gcp_bin)], cwd=target_dir)
-            subprocess.run(["echo", "thanks"])
+            # subprocess.run(["echo", "starting setup"])
+            # subprocess.run([str(gcp_bin), "-setup", setup_key], cwd=target_dir, check=True)
+            # subprocess.run(["ls", "-la"])
+            # subprocess.run(["echo", "hello"])
+            # # Start GCP
+            # subprocess.Popen([str(gcp_bin)], cwd=target_dir)
+            # subprocess.run(["echo", "thanks"])
             # Step 2: Run setup
             # subprocess.run(['adduser', 'globus'])
             # subprocess.Popen(["bash"])
