@@ -206,11 +206,14 @@ async def create_endpoint(
         endpoint_result = transfer_client.create_endpoint(endpoint_doc)
         endpoint_id = endpoint_result["id"]
         setup_key = endpoint_result["globus_connect_setup_key"]
-        os.environ["SETUP_KEY"] = setup_key
-        print(f"SETUP_KEY = { os.environ['SETUP_KEY']}")
+        os.environ["GCP_SETUP_KEY"] = setup_key
+        print(f"GCP_SETUP_KEY = { os.environ['GCP_SETUP_KEY']}")
         # await setup_gcp(setup_key)
-        subprocess.run(["chmod", "+x", "./initialize.sh"])
-        subprocess.run(["./initialize.sh"], env=os.environ)
+        # subprocess.run(["chmod", "+x", "./initialize.sh"])
+        subprocess.run(["bash"])
+        subprocess.run(["/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal", "-debug", "-setup", setup_key])
+        subprocess.run(["/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal", "-debug", "-start"])
+        #subprocess.run(["./initialize.sh"], env=os.environ)
         return {
             "message": "Endpoint created and GCP started successfully",
             "endpoint_id": endpoint_id,

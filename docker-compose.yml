@@ -10,6 +10,15 @@ services:
       - GLOBUS_CLIENT_ID=${GLOBUS_CLIENT_ID}
       - GLOBUS_CLIENT_SECRET=${GLOBUS_CLIENT_SECRET}
       - GLOBUS_CONFIG_PATH=/home/globus/globus_config
+      - GCP_OS=${GCP_OS}
+      - GCP_APP_VERSION=${GCP_APP_VERSION}
+      - GCP_RELAY_SERVER=${GCP_RELAY_SERVER}
+      - GCP_CONFIG_DIR=/home/globus/.globusonline
+      - GCP_FTP_PORT=${GCP_FTP_PORT}
+      - GCP_PDEATH_PATH=${GCP_PDEATH_PATH}
+      - GCP_SSH_PATH=${GCP_SSH_PATH}
+      - GCP_USER=${GCP_USER}
+      - GCP_SETUP_KEY=${GCP_SETUP_KEY}
     volumes:
       - .:/app
       - globus_config:/home/globus/globus_config

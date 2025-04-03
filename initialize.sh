@@ -14,8 +14,8 @@ whoami
 sleep 10
 
 cd /home/globus/globusconnectpersonal-*/
-echo "Setup starting"
-/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal -debug -setup $SETUP_KEY || {
+echo "Setup starting $GCP_SETUP_KEY"
+/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal -debug -setup $GCP_SETUP_KEY || {
     echo "Globus setup failed, check /home/globus/.globusonline/lta/register.log"
     cat /home/globus/.globusonline/lta/register.log
     exit 1

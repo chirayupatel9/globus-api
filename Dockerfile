@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Install necessary packages
 RUN apt-get update && \
-    apt-get install -y wget rsync openssh-client python3 python3-pip && \
+    apt-get install -y wget rsync openssh-client python3 python3-pip dos2unix&& \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     pip3 install --upgrade pip && \
@@ -33,10 +33,11 @@ RUN cd /root && \
 RUN chown -R globus:globus /home/globus && \
     chown -R globus:globus /app && \
     chmod -R 755 /home/globus/globus_config && \
-    chmod -R 755 /home/globus/data && \
-    chmod +x /app/initialize.sh
-# Set working directory
+    chmod -R 755 /home/globus/data 
+    # Set working directory
+
 WORKDIR /app
+
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
@@ -59,6 +60,10 @@ USER globus
 
 # Expose the port the app runs on
 EXPOSE 5000
+
+RUN dos2unix initialize.sh
+RUN dos2unix .env
+RUN chmod +x initialize.sh
 
 # Command to run the application
 CMD ["python3", "run_with_ngrok.py"]
