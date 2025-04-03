@@ -1,4 +1,4 @@
-FROM rockylinux:9
+FROM ubuntu:22.04
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -9,11 +9,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TERM=xterm
 
 # Install necessary packages
-RUN yum -y update && \
-    yum -y install wget rsync openssh-clients python pip && \
-    yum -y install epel-release && \
-    yum -y update && \
-    dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+RUN apt-get update && \
+    apt-get install -y wget rsync openssh-client python3 python3-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
     pip3 install --upgrade pip
 
 # Create globus user and necessary directories
@@ -61,4 +60,4 @@ USER globus
 EXPOSE 5000
 
 # Command to run the application
-CMD ["python", "run_with_ngrok.py"]
+CMD ["python3", "run_with_ngrok.py"]

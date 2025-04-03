@@ -4,8 +4,8 @@ set -o allexport
 source .env
 set +o allexport
 
-echo "Loaded DataPath = $DataPath"
-echo "Loaded SETUP_KEY = $SETUP_KEY"
+# echo "Loaded DataPath = $DataPath"
+# echo "Loaded SETUP_KEY = $SETUP_KEY"
 
 # Create the data directory if it doesn't exist
 mkdir -p "~/DataPath"
@@ -13,7 +13,7 @@ whoami
 
 cd /home/globus/globusconnectpersonal-*/
 echo "Setup starting"
-./globusconnectpersonal -debug -setup $SETUP_KEY
+/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal -debug -setup $SETUP_KEY
 echo "Setup complete"
 
 command -v python3
@@ -22,7 +22,7 @@ command -v python3
 cp -p -r /home/globus/.globus* /home/globus/globus_config
 
 echo "Starting Globus Connect Personal"
-./globusconnectpersonal -debug -start &
+/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal -start &
 echo "Globus Connect Personal started"
 
 echo "/home/globus/data,0,1" >> ~/.globusonline/lta/config-paths
