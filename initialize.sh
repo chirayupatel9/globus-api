@@ -11,11 +11,17 @@ set +o allexport
 mkdir -p "~/DataPath"
 whoami
 
+sleep 10
+
 cd /home/globus/globusconnectpersonal-*/
 echo "Setup starting"
-/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal -debug -setup $SETUP_KEY
+/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal -debug -setup $SETUP_KEY || {
+    echo "Globus setup failed, check /home/globus/.globusonline/lta/register.log"
+    cat /home/globus/.globusonline/lta/register.log
+    exit 1
+}
 echo "Setup complete"
-
+sleep 10
 command -v python3
 
 # Copy the Globus configuration to the host directory

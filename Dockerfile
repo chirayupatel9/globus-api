@@ -13,7 +13,8 @@ RUN apt-get update && \
     apt-get install -y wget rsync openssh-client python3 python3-pip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    pip3 install --upgrade pip
+    pip3 install --upgrade pip && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
 # Create globus user and necessary directories
 RUN adduser globus && \
@@ -32,8 +33,8 @@ RUN cd /root && \
 RUN chown -R globus:globus /home/globus && \
     chown -R globus:globus /app && \
     chmod -R 755 /home/globus/globus_config && \
-    chmod -R 755 /home/globus/data
-
+    chmod -R 755 /home/globus/data && \
+    chmod +x /app/initialize.sh
 # Set working directory
 WORKDIR /app
 
