@@ -1,39 +1,38 @@
-version: '3.8'
+version: "3.3"
 
 services:
-  web:
-    build: .
-    ports:
-      - "5000:5000"
+  globus-connect:
+    build:
+      context: .
+      dockerfile: Dockerfile # Ensure Dockerfile.globus-connect is in the correct path
+    container_name: globus_connect_container
     environment:
-      - NGROK_AUTH_TOKEN=${NGROK_AUTH_TOKEN}
-      - GLOBUS_CLIENT_ID=${GLOBUS_CLIENT_ID}
-      - GLOBUS_CLIENT_SECRET=${GLOBUS_CLIENT_SECRET}
-      - GLOBUS_CONFIG_PATH=/home/globus/globus_config
-      - GCP_OS=${GCP_OS}
-      - GCP_APP_VERSION=${GCP_APP_VERSION}
-      - GCP_RELAY_SERVER=${GCP_RELAY_SERVER}
-      - GCP_CONFIG_DIR=/home/globus/.globusonline
-      - GCP_FTP_PORT=${GCP_FTP_PORT}
-      - GCP_PDEATH_PATH=${GCP_PDEATH_PATH}
-      - GCP_SSH_PATH=${GCP_SSH_PATH}
-      - GCP_USER=${GCP_USER}
-      - GCP_SETUP_KEY=${GCP_SETUP_KEY}
+      - DataPath=${DataPath} # Ensure DataPath is set in the environment or .env file
+      - ConfigPath=${ConfigPath} # Ensure ConfigPath is set in the environment or .env file
+      - START_GLOBUS=false
     volumes:
-      - .:/app
-      - globus_config:/home/globus/globus_config
-      - globus_data:/home/globus/data
-    restart: unless-stopped
-    cap_add:
-      - NET_ADMIN
-      - SYS_ADMIN
-    devices:
-          - /dev/net/tun:/dev/net/tun
-    privileged: true
-    platform: linux/amd64
-    
+      - "${ConfigPath}:/home/gridftp/globus_config" # Map host config path to container
+      - shared-data:/shared-data # Shared volume between services
+      - globus-data:/home/gridftp/data # Second shared volume specifically for /home/gridftp/data
+    networks:
+      - app-network
+    ports:
+      - "2811:2811" # Port mappings for Globus Connect
+      - "7512:7512"
+      - "7513:7513"
+      - "5000:5000"
+    restart: unless-stopped # Automatically restart unless stopped manually
 
 volumes:
-  globus_config:
-  globus_data: 
-  
+  shared-data:
+    driver: local # Using local volume driver for shared-data
+  globus-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DataPath}
+      o: bind
+
+networks:
+  app-network:
+    driver: bridge # Using bridge network driver for inter-container communication

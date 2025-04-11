@@ -1,7 +1,20 @@
-# Globus Auto API
-## Dockerize app
-### To Run the app we need to setup a developer account from globus settings, where you need to create a project -> under that project register a service account or application credential for automation
+### Globus container
+- Build globus container
+- docker build -t globus_container -f Dockerfile .
 
-### If you are running for development purposes there will be an ngrok url you need to update in the globus app you created earlier where it says redirect url/callback url
+{Below Command is for windows CLI}
+```bash
+docker run -e DataPath="E:/globus_data/data" -e ConfigPath="E:/globus_data/config" -v "E:/globus_data/config:/home/gridftp/globus_config" -v "E:/globus_data/data:/home/gridftp/data" -it globus
+```
+```bash
+docker run -e DataPath="E://globus_data//data" -e ConfigPath="E://globus_data//config" -v "E://globus_data//config:/home/gridftp/globus_config" -v "E://globus_data//data:/home/gridftp/data" -e START_GLOBUS="true" -it globus
+```
+- setup globus with login and set a endpoint
 
-### once it is created you need to call create-endpoint url to create an endpoint
+## Setup a thick client in globus
+### Copy the UUID and its secret 
+### Add Ngrok auth in env
+
+```bash
+clear;docker build -t globus .;docker run -it globus
+```

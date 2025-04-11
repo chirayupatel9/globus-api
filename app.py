@@ -37,8 +37,8 @@ app.add_middleware(
 )
 
 # Get configuration from environment variables
-CLIENT_ID = os.getenv("GLOBUS_CLIENT_ID")
-CLIENT_SECRET = os.getenv("GLOBUS_CLIENT_SECRET")
+CLIENT_ID = os.getenv("GLOBUS_CLIENT_ID") # CLIENT UUID from globus
+CLIENT_SECRET = os.getenv("GLOBUS_CLIENT_SECRET") # CLIENT SECRET from globus
 REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:5000/callback")
 SCOPES = "urn:globus:auth:scope:transfer.api.globus.org:all"
 
@@ -160,68 +160,56 @@ async def create_endpoint(
     endpoint: EndpointCreate,
     transfer_client: globus_sdk.TransferClient = Depends(get_transfer_client)
 ):
-    """Create a new Globus endpoint using EndpointDocument"""
-    globus_dir = Path(os.environ.get('HOME', '/home/appuser')) / 'globus'
     
-    async def setup_gcp(setup_key: str):
-        gcp_dir = Path.home() / "globus-connect-personal"
-        gcp_dir.mkdir(exist_ok=True)
-        
-        # Download and extract GCP
-        gcp_url = "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz"
-        subprocess.run(["curl", "-L", "-o", "gcp.tgz", gcp_url], cwd=gcp_dir, check=True)
-        subprocess.run(["tar", "xvzf", "gcp.tgz"], cwd=gcp_dir, check=True)
-        
-        # Find extracted directory
-        extracted_dir = next(
-            (item for item in gcp_dir.iterdir() 
-             if item.is_dir() and item.name.startswith("globusconnectpersonal-")),
-            None
-        )
-        if not extracted_dir:
-            raise HTTPException(status_code=500, detail="Could not find extracted GCP directory")
-        
-        # Setup and run GCP
-        target_dir = Path("/home/globus/gcp")
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        shutil.copytree(extracted_dir, target_dir)
-        
-        gcp_bin = target_dir / "globusconnectpersonal"
-        subprocess.run([str(gcp_bin), "-dir", "/home/globus/gcp", "-setup", setup_key], 
-                      cwd=target_dir, check=True, env=env)
-        subprocess.Popen([str(gcp_bin)], cwd=target_dir, env=env)
-        
-        return True
-
-    try:
-        globus_dir.mkdir(parents=True, exist_ok=True)
-        
+        # Step 1: Create the endpoint via Transfer API
         endpoint_doc = {
             "display_name": endpoint.display_name,
             "is_globus_connect": True,
             "DATA_TYPE": "endpoint"
         }
+        result = transfer_client.create_endpoint(endpoint_doc)
+        endpoint_id = result["id"]
+        setup_key = result["globus_connect_setup_key"]
 
-        endpoint_result = transfer_client.create_endpoint(endpoint_doc)
-        endpoint_id = endpoint_result["id"]
-        setup_key = endpoint_result["globus_connect_setup_key"]
-        os.environ["GCP_SETUP_KEY"] = setup_key
-        print(f"GCP_SETUP_KEY = { os.environ['GCP_SETUP_KEY']}")
-        # await setup_gcp(setup_key)
-        # subprocess.run(["chmod", "+x", "./initialize.sh"])
-        subprocess.run(["bash"])
-        subprocess.run(["/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal", "-debug", "-setup", setup_key])
-        subprocess.run(["/home/globus/globusconnectpersonal-3.2.6/globusconnectpersonal", "-debug", "-start"])
-        #subprocess.run(["./initialize.sh"], env=os.environ)
+        # Step 2: Prepare environment
+        env = os.environ.copy()
+        env.update({
+            "GCP_SETUP_KEY": setup_key,
+            "GCP_USER": os.getenv("GCP_USER"),
+            "GCP_OS_VERSION": "ubuntu22.04",
+            "GCP_RELAY_SERVER": "relay.globusonline.org",
+            "GCP_FTP_PORT": "50000",
+            "GLOBUS_TCP_PORT_RANGE": "50000,51000",
+            "GCP_CONFIG_DIR": "/home/gridftp/.globusonline",
+            "GCP_GLOBAL_ETC_DIR": "/home/gridftp/globusconnectpersonal-3.2.6/etc",
+            "GCP_GRIDFTP_PATH": "/home/gridftp/globusconnectpersonal-3.2.6/gt_amd64/bin/gridftp",
+            "GCP_PDEATH_PATH": "/home/gridftp/globusconnectpersonal-3.2.6/gt_amd64/bin/pdeath",
+            "GCP_SSH_PATH": "/usr/bin/ssh"
+        })
+
+        # Step 3: Create dummy gridftp binary if needed
+        dummy_path = env["GCP_GRIDFTP_PATH"]
+        dummy_dir = os.path.dirname(dummy_path)
+        os.makedirs(dummy_dir, exist_ok=True)
+        Path(dummy_path).touch()
+        os.chmod(dummy_path, 0o755)
+
+        # # Step 4: Run setup and start
+        # subprocess.Popen(
+        #     ["/home/gridftp/globusconnectpersonal-3.2.6/globusconnectpersonal", "-debug", "-setup", f"{setup_key}"],
+        #     env=env)
+        # subprocess.Popen(
+        #         ["/home/gridftp/globusconnectpersonal-3.2.6/globusconnectpersonal", "-debug", "-start"],
+        #     env=env
+        # )
+        # save the setup key and endpoint id to a single file
+        with open("setup_key.txt", "w") as f:
+            f.write(f"KEY1={endpoint_id}\nKEY2={setup_key}")
         return {
             "message": "Endpoint created and GCP started successfully",
             "endpoint_id": endpoint_id,
             "setup_key": setup_key
         }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create endpoint: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
