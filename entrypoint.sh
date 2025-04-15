@@ -36,7 +36,7 @@ else
                 # Run your script with these keys as env vars
                 sleep 10
                 echo "Running initialization.sh"
-                su gridftp -c "cd /home/gridftp && ls &&  KEY1=$KEY1 KEY2=$KEY2 source ./$HANDLE_SCRIPT"
+                su gridftp -c "cd /home/gridftp &&  KEY1=$KEY1 KEY2=$KEY2 source ./$HANDLE_SCRIPT"
             fi
             fi
             sleep 2  # polling interval (adjust if needed)

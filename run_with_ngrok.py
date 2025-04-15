@@ -5,7 +5,7 @@ import json
 
 def run_app():
     # Configure ngrok
-    ngrok_token = os.getenv("NGROK_AUTH_TOKEN")
+    ngrok_token = "2vXiWT7jNWD6YE3NJBreUcu8pOF_3cEom2NzNvPny3Z2Vasic"#os.getenv("NGROK_AUTH_TOKEN")
     if not ngrok_token:
         raise ValueError("NGROK_AUTH_TOKEN environment variable is not set")
     

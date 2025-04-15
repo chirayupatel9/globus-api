@@ -17,7 +17,7 @@ setup_key=$KEY2
 # Set the environment variables
 export GLOBUS_ENDPOINT_ID="$endpoint_id"
 export GLOBUS_SETUP_KEY="$setup_key"
-
+whoami
 echo "GLOBUS_ENDPOINT_ID=$GLOBUS_ENDPOINT_ID"
 echo "GLOBUS_SETUP_KEY=$GLOBUS_SETUP_KEY"
 
@@ -25,7 +25,7 @@ echo "GLOBUS_SETUP_KEY=$GLOBUS_SETUP_KEY"
 cd /home/gridftp/globusconnectpersonal-*/
 
 # Finish the Endpoint Setup
-./globusconnectpersonal -debug -setup $GLOBUS_SETUP_KEY
+./globusconnectpersonal -debug -setup --setup-key $GLOBUS_SETUP_KEY
 
 # Copy the Globus configuration to the host directory
 cp -p -r /home/gridftp/.globus* /home/gridftp/globus_config

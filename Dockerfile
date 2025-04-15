@@ -5,7 +5,7 @@ VOLUME /home/gridftp/data
 
 # Install necessary packages
 RUN yum -y update && \
-    yum -y install wget rsync openssh-clients python pip dos2unix  && \
+    yum -y install wget rsync openssh-clients python pip dos2unix nc && \
     yum -y install epel-release && \
     yum -y update && \
     dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
@@ -53,4 +53,6 @@ ENV GLOBUS_OPTIONAL_MODE=false
 
 CMD ["chmod -R 777 /shared-data"]
 # Set entrypoint to run on startup 
+RUN su gridftp
+
 ENTRYPOINT ["/home/gridftp/entrypoint.sh"]

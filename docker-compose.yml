@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile # Ensure Dockerfile.globus-connect is in the correct path
     container_name: globus_connect_container
     environment:
+      - NGROK_AUTH_TOKEN="2vXiWT7jNWD6YE3NJBreUcu8pOF_3cEom2NzNvPny3Z2Vasic"
+      - GLOBUS_CLIENT_ID="b4a71af8-6f1c-4f94-9da3-79103a9ebfe7"
+      - GLOBUS_CLIENT_SECRET="M1fKQFBCxtYtTeFoaSR4LpXOg5KHIQaXTLczegA6xIU="
       - DataPath=${DataPath} # Ensure DataPath is set in the environment or .env file
       - ConfigPath=${ConfigPath} # Ensure ConfigPath is set in the environment or .env file
       - START_GLOBUS=false
@@ -19,8 +22,11 @@ services:
     ports:
       - "2811:2811" # Port mappings for Globus Connect
       - "7512:7512"
+      - "2223:2223"
       - "7513:7513"
       - "5000:5000"
+      - "50000:51000"
+      - "443:443"
     restart: unless-stopped # Automatically restart unless stopped manually
 
 volumes:

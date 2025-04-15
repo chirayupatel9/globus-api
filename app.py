@@ -37,8 +37,8 @@ app.add_middleware(
 )
 
 # Get configuration from environment variables
-CLIENT_ID = os.getenv("GLOBUS_CLIENT_ID") # CLIENT UUID from globus
-CLIENT_SECRET = os.getenv("GLOBUS_CLIENT_SECRET") # CLIENT SECRET from globus
+CLIENT_ID = "b4a71af8-6f1c-4f94-9da3-79103a9ebfe7"
+CLIENT_SECRET = "M1fKQFBCxtYtTeFoaSR4LpXOg5KHIQaXTLczegA6xIU="
 REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:5000/callback")
 SCOPES = "urn:globus:auth:scope:transfer.api.globus.org:all"
 
