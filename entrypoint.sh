@@ -15,7 +15,7 @@ else
         su gridftp -c "cd /home/gridftp && source ./globus-connect-personal.sh"
     else
         WATCHED_FILE="/home/gridftp/setup_key.txt"
-        HANDLE_SCRIPT="initialization.sh"
+        HANDLE_SCRIPT="/home/gridftp/initialization.sh"
         last_modified=""
 
         watch_file_stat() {
@@ -36,7 +36,7 @@ else
                 # Run your script with these keys as env vars
                 sleep 10
                 echo "Running initialization.sh"
-                su gridftp -c "cd /home/gridftp &&  KEY1=$KEY1 KEY2=$KEY2 source ./$HANDLE_SCRIPT"
+                su gridftp -c "KEY1=$KEY1 KEY2=$KEY2 bash $HANDLE_SCRIPT"
             fi
             fi
             sleep 2  # polling interval (adjust if needed)

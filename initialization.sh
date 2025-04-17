@@ -25,7 +25,7 @@ echo "GLOBUS_SETUP_KEY=$GLOBUS_SETUP_KEY"
 cd /home/gridftp/globusconnectpersonal-*/
 
 # Finish the Endpoint Setup
-./globusconnectpersonal -debug -setup --setup-key $GLOBUS_SETUP_KEY
+./globusconnectpersonal -debug -setup $GLOBUS_SETUP_KEY 
 
 # Copy the Globus configuration to the host directory
 cp -p -r /home/gridftp/.globus* /home/gridftp/globus_config
