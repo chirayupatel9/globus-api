@@ -5,7 +5,7 @@ VOLUME /home/gridftp/data
 
 # Install necessary packages
 RUN yum -y update && \
-    yum -y install wget rsync openssh-clients python pip dos2unix nc && \
+    yum -y install wget rsync openssh-clients python pip dos2unix nc strace && \
     yum -y install epel-release && \
     yum -y update && \
     dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
